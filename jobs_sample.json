@@ -1,60 +1,85 @@
 [
   {
     "title": "Software Engineer",
-    "companyName": "Tech Corp",
+    "company": "Tech Corp",
     "location": "San Francisco, CA",
-    "salary": "$120,000 - $150,000",
-    "applyLinksDetails": [
+    "date_posted": "3 days ago",
+    "job_mode": "Full-time",
+    "apply_links": [
       {
         "platform": "LinkedIn",
-        "url": "https://www.linkedin.com/jobs/view/1234567890"
+        "url": "https://www.linkedin.com/jobs/view/1234567890",
+        "title": "Apply on LinkedIn"
       },
       {
         "platform": "Indeed",
-        "url": "https://www.indeed.com/viewjob?jk=abcdef123456"
+        "url": "https://www.indeed.com/viewjob?jk=abcdef123456",
+        "title": "Apply on Indeed"
+      },
+      {
+        "platform": "Glassdoor",
+        "url": "https://www.glassdoor.com/job-listing/software-engineer-tech-corp-JV_IC1147401_KO0,17_KE18,27.htm",
+        "title": "Apply on Glassdoor"
       }
     ],
-    "link": [
-      "https://www.linkedin.com/jobs/view/1234567890",
-      "https://www.indeed.com/viewjob?jk=abcdef123456"
-    ],
-    "description": "We are looking for a talented Software Engineer to join our team..."
+    "posted_time": "3 days ago",
+    "job_type": "Full-time"
   },
   {
     "title": "Frontend Developer",
-    "companyName": "StartupXYZ",
+    "company": "StartupXYZ",
     "location": "Remote",
-    "salary": "$90,000 - $120,000",
-    "applyLinksDetails": [
+    "date_posted": "1 day ago",
+    "job_mode": "Full-time",
+    "apply_links": [
       {
-        "platform": "Glassdoor",
-        "url": "https://www.glassdoor.com/job-listing/frontend-developer-startupxyz-JV_IC1147401_KO0,18_KE19,29.htm"
+        "platform": "Built In",
+        "url": "https://builtin.com/job/frontend-developer/123456",
+        "title": "Apply on Built In"
+      },
+      {
+        "platform": "Dice",
+        "url": "https://www.dice.com/job-detail/frontend-developer-startupxyz-123456",
+        "title": "Apply on Dice"
+      },
+      {
+        "platform": "ZipRecruiter",
+        "url": "https://www.ziprecruiter.com/jobs/frontend-developer-startupxyz-123456",
+        "title": "Apply on ZipRecruiter"
       }
     ],
-    "link": [
-      "https://www.glassdoor.com/job-listing/frontend-developer-startupxyz-JV_IC1147401_KO0,18_KE19,29.htm"
-    ],
-    "description": "Join our dynamic team as a Frontend Developer..."
+    "posted_time": "1 day ago",
+    "job_type": "Full-time"
   },
   {
     "title": "Data Scientist",
-    "companyName": "DataCorp",
+    "company": "DataCorp",
     "location": "New York, NY",
-    "salary": "$130,000 - $160,000",
-    "applyLinksDetails": [
+    "date_posted": "5 days ago",
+    "job_mode": "Full-time",
+    "apply_links": [
       {
         "platform": "LinkedIn",
-        "url": "https://www.linkedin.com/jobs/view/9876543210"
+        "url": "https://www.linkedin.com/jobs/view/9876543210",
+        "title": "Apply on LinkedIn"
       },
       {
-        "platform": "Built In",
-        "url": "https://builtin.com/job/data-scientist/123456"
+        "platform": "Indeed",
+        "url": "https://www.indeed.com/viewjob?jk=xyz789",
+        "title": "Apply on Indeed"
+      },
+      {
+        "platform": "The Muse",
+        "url": "https://www.themuse.com/jobs/datacorp/data-scientist-123456",
+        "title": "Apply on The Muse"
+      },
+      {
+        "platform": "SimplyHired",
+        "url": "https://www.simplyhired.com/job/data-scientist-datacorp-123456",
+        "title": "Apply on SimplyHired"
       }
     ],
-    "link": [
-      "https://www.linkedin.com/jobs/view/9876543210",
-      "https://builtin.com/job/data-scientist/123456"
-    ],
-    "description": "We are seeking a Data Scientist to analyze complex datasets..."
+    "posted_time": "5 days ago",
+    "job_type": "Full-time"
   }
 ]

@@ -113,11 +113,24 @@ def handle_termination(signum, frame):
 def print_final_stats():
     """Print final statistics"""
     duration = datetime.now() - bot_state.start_time
+    total_jobs = bot_state.applications_submitted + bot_state.applications_failed + bot_state.applications_skipped
+    success_rate = (bot_state.applications_submitted / total_jobs * 100) if total_jobs > 0 else 0
+    
     bot_state.logger.info(f"📊 Final Stats:")
     bot_state.logger.info(f"   ✅ Submitted: {bot_state.applications_submitted}")
     bot_state.logger.info(f"   ❌ Failed: {bot_state.applications_failed}")
     bot_state.logger.info(f"   ⏭️ Skipped: {bot_state.applications_skipped}")
+    bot_state.logger.info(f"   📈 Success Rate: {success_rate:.1f}%")
     bot_state.logger.info(f"   ⏱️ Duration: {duration}")
+
+def log_application_attempt(job: Dict[str, Any], platform: str, success: bool, error: str = None):
+    """Log individual application attempt"""
+    from utils import log_application_attempt as utils_log
+    try:
+        utils_log(job, success, error)
+    except:
+        # Fallback logging if utils function fails
+        pass
 
 signal.signal(signal.SIGINT, handle_termination)
 signal.signal(signal.SIGTERM, handle_termination)
@@ -148,7 +161,27 @@ def detect_platform(url: str) -> str:
         'smartrecruiters.com': 'smartrecruiters',
         'bamboohr.com': 'bamboohr',
         'recruitee.com': 'recruitee',
-        'workday.com': 'workday'
+        'workday.com': 'workday',
+        'dice.com': 'dice',
+        'ziprecruiter.com': 'ziprecruiter',
+        'builtin.com': 'builtin',
+        'builtinla.com': 'builtin',
+        'builtinseattle.com': 'builtin',
+        'builtincolorado.com': 'builtin',
+        'themuse.com': 'themuse',
+        'simplyhired.com': 'simplyhired',
+        'bebee.com': 'bebee',
+        'talentify.io': 'talentify',
+        'tealhq.com': 'teal',
+        'himalayas.app': 'himalayas',
+        'startup.jobs': 'startupjobs',
+        'jooble.org': 'jooble',
+        'whatjobs.com': 'whatjobs',
+        'theladders.com': 'ladders',
+        'clearancejobs.com': 'clearancejobs',
+        'clearedcareers.com': 'clearedcareers',
+        'jsfirm.com': 'jsfirm',
+        'recruit.net': 'recruitnet'
     }
     
     for domain_key, platform in platform_map.items():
@@ -378,13 +411,37 @@ def find_and_click(driver, xpath: str, timeout: int = 5) -> bool:
         return False
 
 # ========== URL Prioritization ==========
-def get_best_apply_url(job: Dict[str, Any]) -> Optional[str]:
-    """Get the best application URL based on platform priority"""
-    preferred_platforms = ['LinkedIn', 'Indeed', 'Glassdoor', 'Built In', 'SimplyHired']
+def get_prioritized_apply_urls(job: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Get prioritized list of application URLs to try in order"""
+    preferred_platforms = ['LinkedIn', 'Indeed', 'Glassdoor', 'Built In', 'SimplyHired', 'Dice', 'ZipRecruiter']
     seen_urls = set()
+    prioritized_urls = []
     
-    # Check applyLinksDetails first
-    if 'applyLinksDetails' in job and job['applyLinksDetails']:
+    # Check apply_links first (new format)
+    if 'apply_links' in job and job['apply_links']:
+        # Sort by platform priority
+        sorted_links = sorted(
+            job['apply_links'],
+            key=lambda x: (
+                preferred_platforms.index(x.get('platform', '')) 
+                if x.get('platform') in preferred_platforms 
+                else len(preferred_platforms)
+            )
+        )
+        
+        for link_obj in sorted_links:
+            url = link_obj.get('url')
+            platform = link_obj.get('platform', 'Unknown')
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                prioritized_urls.append({
+                    'url': url,
+                    'platform': platform,
+                    'title': link_obj.get('title', f'Apply on {platform}')
+                })
+    
+    # Fallback to applyLinksDetails (old format)
+    elif 'applyLinksDetails' in job and job['applyLinksDetails']:
         sorted_links = sorted(
             job['applyLinksDetails'],
             key=lambda x: (
@@ -396,9 +453,14 @@ def get_best_apply_url(job: Dict[str, Any]) -> Optional[str]:
         
         for link_obj in sorted_links:
             url = link_obj.get('url')
+            platform = link_obj.get('platform', 'Unknown')
             if url and url not in seen_urls:
                 seen_urls.add(url)
-                return url
+                prioritized_urls.append({
+                    'url': url,
+                    'platform': platform,
+                    'title': f'Apply on {platform}'
+                })
     
     # Fallback to direct links
     links = job.get("link", [])
@@ -408,9 +470,13 @@ def get_best_apply_url(job: Dict[str, Any]) -> Optional[str]:
     for url in links:
         if url and url not in seen_urls:
             seen_urls.add(url)
-            return url
+            prioritized_urls.append({
+                'url': url,
+                'platform': 'Generic',
+                'title': 'Apply'
+            })
     
-    return None
+    return prioritized_urls
 
 # ========== Enhanced Form Detection ==========
 def detect_and_fill_form(driver, profile: Dict[str, Any]) -> bool:
@@ -672,82 +738,131 @@ def handle_linkedin_application(driver, job: Dict[str, Any], profile: Dict[str, 
 
 # ========== Main Job Processing ==========
 def process_job(driver, job: Dict[str, Any], profile: Dict[str, Any]) -> bool:
-    """Process a single job application"""
+    """Process a single job application by trying multiple platforms until one succeeds"""
     try:
-        url = get_best_apply_url(job)
-        if not url:
-            bot_state.logger.warning("No valid application URL found")
+        apply_urls = get_prioritized_apply_urls(job)
+        if not apply_urls:
+            bot_state.logger.warning("No valid application URLs found")
             bot_state.applications_skipped += 1
             return False
         
         job_title = job.get('title', 'Unknown')
-        company = job.get('companyName', 'Unknown')
-        platform = detect_platform(url)
+        company = job.get('company', 'Unknown')
         
         bot_state.logger.info(f"Processing: {job_title} at {company}")
-        bot_state.logger.info(f"Platform: {platform} | URL: {url}")
+        bot_state.logger.info(f"Found {len(apply_urls)} application URLs to try")
         
-        # Navigate to job
-        driver.get(url)
-        human_delay(4, 6)
+        # Try each URL until one succeeds
+        for i, url_info in enumerate(apply_urls):
+            url = url_info['url']
+            platform_name = url_info['platform']
+            platform = detect_platform(url)
+            
+            bot_state.logger.info(f"Attempt {i+1}/{len(apply_urls)}: {platform_name} | {url}")
+            
+            try:
+                # Navigate to job
+                driver.get(url)
+                human_delay(4, 6)
+                
+                # Platform-specific handling
+                success = False
+                if platform == 'linkedin':
+                    success = handle_linkedin_application(driver, job, profile)
+                else:
+                    # Generic handling for other platforms
+                    success = handle_generic_application(driver, job, profile, platform_name)
+                
+                if success:
+                    bot_state.applications_submitted += 1
+                    bot_state.logger.info(f"✅ Application submitted successfully via {platform_name}")
+                    return True
+                else:
+                    bot_state.logger.warning(f"❌ Application failed on {platform_name}")
+                    # Continue to next URL
+                    continue
+                    
+            except Exception as e:
+                bot_state.logger.error(f"Error on {platform_name}: {e}")
+                # Continue to next URL
+                continue
         
-        # Platform-specific handling
-        success = False
-        if platform == 'linkedin':
-            success = handle_linkedin_application(driver, job, profile)
-        else:
-            # Generic handling for other platforms
-            success = handle_generic_application(driver, job, profile)
-        
-        if success:
-            bot_state.applications_submitted += 1
-            bot_state.logger.info("✅ Application submitted successfully")
-        else:
-            bot_state.applications_failed += 1
-            bot_state.logger.warning("❌ Application failed")
-        
-        return success
+        # If we get here, all URLs failed
+        bot_state.applications_failed += 1
+        bot_state.logger.error(f"❌ All application attempts failed for {job_title}")
+        return False
         
     except Exception as e:
         bot_state.logger.error(f"Error processing job: {e}")
         bot_state.applications_failed += 1
         return False
 
-def handle_generic_application(driver, job: Dict[str, Any], profile: Dict[str, Any]) -> bool:
+def handle_generic_application(driver, job: Dict[str, Any], profile: Dict[str, Any], platform_name: str = "Generic") -> bool:
     """Handle generic job application flow"""
     try:
-        # Look for apply buttons
+        bot_state.logger.info(f"Handling {platform_name} application")
+        
+        # Look for apply buttons with platform-specific variations
         apply_selectors = [
             "//button[contains(text(), 'Apply')]",
             "//a[contains(text(), 'Apply')]",
             "//button[contains(text(), 'Submit Application')]",
-            "//input[@type='submit' and contains(@value, 'Apply')]"
+            "//input[@type='submit' and contains(@value, 'Apply')]",
+            "//button[contains(@class, 'apply')]",
+            "//a[contains(@class, 'apply')]",
+            "//button[contains(text(), 'Apply Now')]",
+            "//a[contains(text(), 'Apply Now')]"
         ]
         
+        apply_clicked = False
         for selector in apply_selectors:
             if find_and_click(driver, selector):
+                bot_state.logger.debug(f"Clicked apply button: {selector}")
+                apply_clicked = True
                 break
+        
+        if not apply_clicked:
+            bot_state.logger.warning(f"No apply button found on {platform_name}")
+            # Still try to fill form in case we're already on application page
         
         human_delay(2, 4)
         
+        # Handle new window/tab if opened
+        if len(driver.window_handles) > 1:
+            driver.switch_to.window(driver.window_handles[-1])
+            bot_state.logger.debug("Switched to new window")
+            human_delay(2, 3)
+        
         # Fill form
-        if detect_and_fill_form(driver, profile):
+        form_filled = detect_and_fill_form(driver, profile)
+        
+        if form_filled:
+            bot_state.logger.info(f"Form filled successfully on {platform_name}")
+            
             # Try to submit
             submit_selectors = [
                 "//button[contains(text(), 'Submit')]",
                 "//button[contains(text(), 'Apply')]",
                 "//button[contains(text(), 'Send')]",
-                "//input[@type='submit']"
+                "//button[contains(text(), 'Submit Application')]",
+                "//input[@type='submit']",
+                "//button[@type='submit']"
             ]
             
             for selector in submit_selectors:
                 if find_and_click(driver, selector):
+                    bot_state.logger.info(f"Application submitted on {platform_name}")
+                    human_delay(2, 4)  # Wait for submission to process
                     return True
-        
-        return False
+            
+            bot_state.logger.warning(f"Form filled but no submit button found on {platform_name}")
+            return False
+        else:
+            bot_state.logger.warning(f"No form fields found or filled on {platform_name}")
+            return False
         
     except Exception as e:
-        bot_state.logger.error(f"Generic application error: {e}")
+        bot_state.logger.error(f"{platform_name} application error: {e}")
         return False
 
 # ========== Main Function ==========
@@ -791,6 +906,11 @@ def main():
     bot_state.logger.info(f"Profile loaded successfully with {len(profile)} fields")
     if args.verbose:
         bot_state.logger.debug("Profile fields: " + ", ".join(f"{k}={v}" for k, v in profile.items() if v))
+    
+    # Show job data statistics
+    if job_data:
+        total_urls = sum(len(job.get('apply_links', [])) for job in job_data)
+        bot_state.logger.info(f"Loaded {len(job_data)} jobs with {total_urls} total application URLs")
     
     # Setup driver
     bot_state.logger.info("Setting up browser...")

@@ -4,7 +4,8 @@ An automated job application bot that applies to jobs from LinkedIn and other jo
 
 ## Features
 
-- **Multi-Platform Support**: Works with LinkedIn, Indeed, Glassdoor, and other job platforms
+- **Multi-Platform Support**: Works with LinkedIn, Indeed, Glassdoor, and 20+ other job platforms
+- **Multi-URL Fallback**: Tries multiple application URLs per job until one succeeds
 - **Intelligent Form Filling**: Automatically detects and fills common form fields
 - **Smart Platform Prioritization**: Prioritizes LinkedIn applications over other platforms
 - **Comprehensive Logging**: Detailed logging with statistics and error tracking
@@ -13,6 +14,7 @@ An automated job application bot that applies to jobs from LinkedIn and other jo
 - **File Upload Support**: Automatically uploads resume and cover letter files
 - **Graceful Error Handling**: Continues processing even if individual applications fail
 - **Statistics Tracking**: Tracks success rates and application history
+- **Persistent Application**: Keeps trying different platforms until successful
 
 ## Installation
 
@@ -62,15 +64,27 @@ pip install -r requirements.txt
 [
   {
     "title": "Software Engineer",
-    "companyName": "Tech Corp",
+    "company": "Tech Corp",
     "location": "San Francisco, CA",
-    "applyLinksDetails": [
+    "apply_links": [
       {
         "platform": "LinkedIn",
-        "url": "https://www.linkedin.com/jobs/view/1234567890"
+        "url": "https://www.linkedin.com/jobs/view/1234567890",
+        "title": "Apply on LinkedIn"
+      },
+      {
+        "platform": "Indeed",
+        "url": "https://www.indeed.com/viewjob?jk=abcdef123456",
+        "title": "Apply on Indeed"
+      },
+      {
+        "platform": "Glassdoor",
+        "url": "https://www.glassdoor.com/job-listing/software-engineer-tech-corp-123456",
+        "title": "Apply on Glassdoor"
       }
     ],
-    "link": ["https://www.linkedin.com/jobs/view/1234567890"]
+    "posted_time": "3 days ago",
+    "job_type": "Full-time"
   }
 ]
 ```
@@ -111,14 +125,27 @@ python linkedin_apply_bot.py \
 ## How It Works
 
 1. **Job Processing**: The bot reads job listings from your JSON file
-2. **Platform Detection**: Identifies the job platform (LinkedIn, Indeed, etc.)
-3. **URL Prioritization**: Prioritizes LinkedIn applications over other platforms
-4. **Navigation**: Opens the job application page
-5. **Form Detection**: Automatically detects form fields on the page
-6. **Form Filling**: Fills out the form using your profile information
-7. **File Upload**: Uploads resume and cover letter files if required
-8. **Submission**: Submits the application
-9. **Logging**: Records the success/failure of each application
+2. **Multi-Platform Strategy**: For each job, tries multiple application URLs in priority order
+3. **Platform Detection**: Identifies the job platform (LinkedIn, Indeed, etc.)
+4. **URL Prioritization**: Prioritizes LinkedIn applications over other platforms
+5. **Navigation**: Opens the job application page
+6. **Form Detection**: Automatically detects form fields on the page
+7. **Form Filling**: Fills out the form using your profile information
+8. **File Upload**: Uploads resume and cover letter files if required
+9. **Submission**: Submits the application
+10. **Fallback**: If application fails, tries the next platform URL
+11. **Success Tracking**: Moves to next job only after successful application
+12. **Logging**: Records all attempts and final success/failure status
+
+### Multi-Platform Fallback Strategy
+
+The bot implements a robust fallback system:
+- **Step 1**: Try LinkedIn (highest priority)
+- **Step 2**: Try Indeed (second priority)
+- **Step 3**: Try Glassdoor (third priority)
+- **Step 4**: Continue through all available platforms
+- **Step 5**: Only mark as failed if ALL platforms fail
+- **Step 6**: Move to next job only after successful submission
 
 ## Supported Platforms
 
