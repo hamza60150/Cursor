@@ -1,15 +1,20 @@
 # Cookie Loading Fix - LinkedIn Apply Bot
 
 ## Problem
-The bot was failing to load cookies because your `cookies.json` file is in **browser extension format** (from tools like EditThisCookie, Cookie Editor, etc.), but Selenium expects a **different format**.
+The bot was failing to load cookies due to **two main issues**:
+
+1. **Format Issue**: Your `cookies.json` file is in **browser extension format** (from tools like EditThisCookie, Cookie Editor, etc.), but Selenium expects a different format.
+
+2. **Domain Mismatch**: The bot was trying to load Google cookies (`.google.com`) on LinkedIn (`linkedin.com`), which Selenium blocks for security reasons.
 
 ## What Was Fixed
 
 ### 1. Enhanced Cookie Loading Function
 - **File**: `utils.py`
 - **Added**: `convert_browser_cookie_to_selenium()` function
-- **Enhanced**: `load_cookies()` function with format conversion
-- **Result**: Automatically converts browser extension cookies to Selenium format
+- **Enhanced**: `load_cookies()` function with smart domain handling
+- **Added**: `load_cookies_for_domain()` function for domain-specific loading
+- **Result**: Automatically converts browser extension cookies and handles multiple domains
 
 ### 2. Improved Error Handling
 - **File**: `linkedin_apply_bot.py`
@@ -17,10 +22,10 @@ The bot was failing to load cookies because your `cookies.json` file is in **bro
 - **Added**: Better error messages and fallback handling
 - **Result**: Bot continues running even if some cookies fail to load
 
-### 3. Cookie Converter Utility
-- **File**: `cookie_converter.py` (NEW)
-- **Purpose**: Standalone utility to convert cookie formats
-- **Features**: Validation, conversion, and detailed reporting
+### 3. Cookie Utilities
+- **File**: `cookie_converter.py` (NEW) - Standalone utility to convert cookie formats
+- **File**: `get_linkedin_cookies.py` (NEW) - Extract LinkedIn cookies directly
+- **Features**: Validation, conversion, domain-specific extraction, and detailed reporting
 
 ## How to Use
 
@@ -36,10 +41,17 @@ If you want to convert your cookies manually:
 python3 cookie_converter.py cookies.json cookies_converted.json
 ```
 
-### Option 3: Validate Your Cookies
+### Option 3: Get LinkedIn Cookies Directly
+To extract LinkedIn cookies from your browser:
+```bash
+python3 get_linkedin_cookies.py
+```
+
+### Option 4: Validate Your Cookies
 To check if your cookies are valid:
 ```bash
 python3 cookie_converter.py --validate cookies.json
+python3 get_linkedin_cookies.py --validate linkedin_cookies.json
 ```
 
 ## Cookie Format Differences
@@ -86,13 +98,17 @@ python3 cookie_converter.py --validate cookies.json
 After the fix, you should see:
 ```
 INFO: Loading saved cookies...
-INFO: Successfully loaded 20 cookies from cookies.json
+INFO: Found cookies for domains: ['google.com', 'linkedin.com']
+INFO: Loaded 15 cookies for google.com (skipped 2)
+INFO: Loaded 8 cookies for linkedin.com (skipped 0)
+INFO: Successfully loaded cookies from 2 domains
+INFO: Cookies loaded successfully, navigated to LinkedIn
 ```
 
 Instead of:
 ```
-WARNING: Failed to add cookie: 
-WARNING: Failed to add cookie: 
+WARNING: Failed to add cookie: invalid cookie domain: Cookie 'domain' mismatch
+WARNING: Failed to add cookie: invalid cookie domain: Cookie 'domain' mismatch
 ...
 ```
 
@@ -110,8 +126,22 @@ WARNING: Failed to add cookie:
 4. **Use the converted file** with the bot
 
 ## Files Modified
-- ✅ `utils.py` - Enhanced cookie loading
+- ✅ `utils.py` - Enhanced cookie loading with domain handling
 - ✅ `linkedin_apply_bot.py` - Updated to use new cookie loader
 - ✅ `cookie_converter.py` - New utility for cookie conversion
+- ✅ `get_linkedin_cookies.py` - New utility for LinkedIn cookie extraction
 
-The bot should now work perfectly with your cookie file! 🎉
+## Quick Fix for Your Current Issue
+
+Since your current cookies are mostly Google cookies, you have two options:
+
+### Option A: Get LinkedIn Cookies (Recommended)
+```bash
+python3 get_linkedin_cookies.py
+```
+Then use the generated `linkedin_cookies.json` file.
+
+### Option B: Use Current Cookies (Will work but limited)
+Your current cookies will now load without errors, but you'll get a warning about missing LinkedIn cookies.
+
+The bot should now work without domain mismatch errors! 🎉

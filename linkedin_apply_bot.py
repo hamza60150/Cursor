@@ -310,15 +310,19 @@ def setup_driver(headless: bool = False, cookies_path: str = None) -> uc.Chrome:
         # Load cookies if provided
         if cookies_path and os.path.exists(cookies_path):
             bot_state.logger.info("Loading saved cookies...")
-            driver.get("https://www.linkedin.com")
             
             # Use the improved cookie loading function
             from utils import load_cookies
             if load_cookies(driver, cookies_path):
-                driver.refresh()
+                # Navigate back to LinkedIn after loading cookies
+                driver.get("https://www.linkedin.com")
                 time.sleep(3)
+                bot_state.logger.info("Cookies loaded successfully, navigated to LinkedIn")
             else:
                 bot_state.logger.warning("Cookie loading failed, continuing without cookies")
+                # Still navigate to LinkedIn
+                driver.get("https://www.linkedin.com")
+                time.sleep(2)
         
         return driver
         

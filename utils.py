@@ -56,30 +56,94 @@ def convert_browser_cookie_to_selenium(cookie: Dict[str, Any]) -> Dict[str, Any]
     
     return selenium_cookie
 
+def load_cookies_for_domain(driver, cookies: list, domain: str):
+    """Load cookies for a specific domain"""
+    loaded_count = 0
+    skipped_count = 0
+    
+    for cookie in cookies:
+        try:
+            # Convert browser cookie format to Selenium format
+            selenium_cookie = convert_browser_cookie_to_selenium(cookie)
+            
+            # Skip empty cookies
+            if not selenium_cookie['name'] or not selenium_cookie['value']:
+                skipped_count += 1
+                continue
+            
+            # Check if cookie belongs to current domain
+            cookie_domain = selenium_cookie['domain']
+            if cookie_domain.startswith('.'):
+                cookie_domain = cookie_domain[1:]  # Remove leading dot
+            
+            if domain not in cookie_domain and cookie_domain not in domain:
+                skipped_count += 1
+                continue
+            
+            driver.add_cookie(selenium_cookie)
+            loaded_count += 1
+        except Exception as e:
+            logging.warning(f"Failed to add cookie {cookie.get('name', 'unknown')}: {e}")
+            skipped_count += 1
+    
+    logging.info(f"Loaded {loaded_count} cookies for {domain} (skipped {skipped_count})")
+    return loaded_count > 0
+
 def load_cookies(driver, filepath: str):
-    """Load cookies from file into browser with format conversion"""
+    """Load cookies from file into browser with smart domain handling"""
     try:
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as f:
-                cookies = json.load(f)
+        if not os.path.exists(filepath):
+            logging.warning(f"Cookie file not found: {filepath}")
+            return False
             
-            loaded_count = 0
-            for cookie in cookies:
-                try:
-                    # Convert browser cookie format to Selenium format
-                    selenium_cookie = convert_browser_cookie_to_selenium(cookie)
-                    
-                    # Skip empty cookies
-                    if not selenium_cookie['name'] or not selenium_cookie['value']:
-                        continue
-                    
-                    driver.add_cookie(selenium_cookie)
-                    loaded_count += 1
-                except Exception as e:
-                    logging.warning(f"Failed to add cookie {cookie.get('name', 'unknown')}: {e}")
+        with open(filepath, 'r') as f:
+            cookies = json.load(f)
+        
+        if not cookies:
+            logging.warning("No cookies found in file")
+            return False
+        
+        # Group cookies by domain
+        domain_cookies = {}
+        for cookie in cookies:
+            domain = cookie.get('domain', '')
+            if domain.startswith('.'):
+                domain = domain[1:]  # Remove leading dot
             
-            logging.info(f"Successfully loaded {loaded_count} cookies from {filepath}")
-            return True
+            if domain not in domain_cookies:
+                domain_cookies[domain] = []
+            domain_cookies[domain].append(cookie)
+        
+        logging.info(f"Found cookies for domains: {list(domain_cookies.keys())}")
+        
+        # Check if we have LinkedIn cookies
+        has_linkedin_cookies = any('linkedin' in domain.lower() for domain in domain_cookies.keys())
+        if not has_linkedin_cookies:
+            logging.warning("No LinkedIn cookies found! Bot may not be able to access LinkedIn properly.")
+            logging.warning("Please export LinkedIn cookies from your browser for better results.")
+        
+        # Load cookies for each domain
+        total_loaded = 0
+        for domain, domain_cookie_list in domain_cookies.items():
+            try:
+                # Navigate to domain
+                if 'linkedin' in domain.lower():
+                    driver.get(f"https://www.linkedin.com")
+                elif 'google' in domain.lower():
+                    driver.get(f"https://www.google.com")
+                else:
+                    driver.get(f"https://{domain}")
+                
+                # Load cookies for this domain
+                if load_cookies_for_domain(driver, domain_cookie_list, domain):
+                    total_loaded += len(domain_cookie_list)
+                
+            except Exception as e:
+                logging.warning(f"Failed to load cookies for domain {domain}: {e}")
+        
+        logging.info(f"Successfully loaded cookies from {len(domain_cookies)} domains")
+        return total_loaded > 0
+        
     except Exception as e:
         logging.error(f"Failed to load cookies: {e}")
     return False
