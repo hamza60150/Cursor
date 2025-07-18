@@ -890,9 +890,25 @@ def main():
     
     # Load data
     bot_state.logger.info("Loading job data and profile...")
-    job_data = load_json(args.jobs_file)
+    job_data_raw = load_json(args.jobs_file)
     raw_profile = load_json(args.profile_file)
     profile = normalize_profile(raw_profile)
+    
+    # Handle different job data formats
+    if isinstance(job_data_raw, dict):
+        if 'jobs' in job_data_raw:
+            # Handle format: {"jobs": [...]}
+            job_data = job_data_raw['jobs']
+            bot_state.logger.info(f"Detected nested jobs format with {len(job_data)} jobs")
+        else:
+            # Handle format: {"job1": {...}, "job2": {...}}
+            job_data = [job_data_raw]
+    elif isinstance(job_data_raw, list):
+        # Handle format: [{"job1": {...}}, {"job2": {...}}]
+        job_data = job_data_raw
+    else:
+        bot_state.logger.error("Invalid job data format")
+        sys.exit(1)
     
     # Validate profile
     required_fields = ['email', 'first_name', 'last_name']
