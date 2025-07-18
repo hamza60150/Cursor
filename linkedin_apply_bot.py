@@ -169,6 +169,86 @@ def load_json(file_path: str) -> Dict[str, Any]:
         bot_state.logger.error(f"Invalid JSON in {file_path}: {e}")
         sys.exit(1)
 
+def normalize_profile(profile: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize profile data to flat structure for compatibility"""
+    normalized = {}
+    
+    # Handle nested structure
+    if 'personal_info' in profile:
+        personal = profile['personal_info']
+        normalized['email'] = personal.get('email', '')
+        normalized['first_name'] = personal.get('first_name', '')
+        normalized['last_name'] = personal.get('last_name', '')
+        normalized['full_name'] = personal.get('full_name', '')
+        normalized['phone'] = personal.get('phone', '')
+        normalized['linkedin'] = personal.get('linkedin_url', '')
+        normalized['website'] = personal.get('website', '')
+        
+        # Handle nested address
+        if 'address' in personal:
+            addr = personal['address']
+            normalized['address'] = addr.get('street', '')
+            normalized['city'] = addr.get('city', '')
+            normalized['state'] = addr.get('state', '')
+            normalized['zip'] = addr.get('zip_code', '')
+            normalized['country'] = addr.get('country', '')
+    
+    # Handle file paths
+    if 'files' in profile:
+        files = profile['files']
+        normalized['resume_path'] = files.get('resume_path', '')
+        normalized['cover_letter_path'] = files.get('cover_letter_path', '')
+    
+    # Handle questionnaire responses for cover letter
+    if 'questionnaire_responses' in profile:
+        common = profile['questionnaire_responses'].get('common_questions', {})
+        normalized['cover_letter'] = common.get('why_interested', '')
+    
+    # Handle professional info
+    if 'professional_info' in profile:
+        prof = profile['professional_info']
+        normalized['current_title'] = prof.get('current_title', '')
+        normalized['years_experience'] = str(prof.get('years_of_experience', ''))
+        normalized['desired_salary'] = prof.get('desired_salary', '')
+        
+        # Handle availability
+        if 'availability' in prof:
+            avail = prof['availability']
+            normalized['start_date'] = avail.get('start_date', '')
+            normalized['notice_period'] = avail.get('notice_period', '')
+            normalized['willing_to_relocate'] = avail.get('willing_to_relocate', False)
+    
+    # Handle education (use most recent)
+    if 'education' in profile and profile['education']:
+        education = profile['education'][0]  # Use first (most recent)
+        normalized['education_degree'] = education.get('degree', '')
+        normalized['education_field'] = education.get('field', '')
+        normalized['education_school'] = education.get('school', '')
+        normalized['graduation_year'] = education.get('graduation_year', '')
+    
+    # Handle skills
+    if 'skills' in profile:
+        skills = profile['skills']
+        # Combine all skills into a comma-separated string
+        all_skills = []
+        for skill_category in skills.values():
+            if isinstance(skill_category, list):
+                all_skills.extend(skill_category)
+        normalized['skills'] = ', '.join(all_skills)
+    
+    # Handle boolean responses
+    if 'questionnaire_responses' in profile:
+        boolean_resp = profile['questionnaire_responses'].get('boolean_responses', {})
+        normalized['authorized_to_work'] = boolean_resp.get('authorized_to_work', True)
+        normalized['require_sponsorship'] = boolean_resp.get('require_sponsorship', False)
+        normalized['background_check_consent'] = boolean_resp.get('background_check_consent', True)
+    
+    # Fallback to original structure if no nested structure found
+    if not normalized and 'personal_info' not in profile:
+        normalized = profile.copy()
+    
+    return normalized
+
 def setup_driver(headless: bool = False, cookies_path: str = None) -> uc.Chrome:
     """Setup Chrome driver with optimal settings"""
     options = uc.ChromeOptions()
@@ -339,19 +419,27 @@ def detect_and_fill_form(driver, profile: Dict[str, Any]) -> bool:
     
     # Common field mappings
     field_mappings = {
-        'email': ['email', 'e-mail', 'mail', 'email_address'],
-        'first_name': ['first', 'firstname', 'fname', 'given_name'],
-        'last_name': ['last', 'lastname', 'lname', 'family_name', 'surname'],
-        'full_name': ['name', 'full_name', 'fullname', 'applicant_name'],
-        'phone': ['phone', 'telephone', 'mobile', 'cell'],
-        'address': ['address', 'street', 'location'],
-        'city': ['city', 'town'],
-        'state': ['state', 'province', 'region'],
-        'zip': ['zip', 'postal', 'postcode'],
-        'country': ['country'],
-        'linkedin': ['linkedin', 'linkedin_url', 'linkedin_profile'],
-        'website': ['website', 'portfolio', 'personal_website'],
-        'cover_letter': ['cover_letter', 'coverletter', 'message', 'additional_info']
+        'email': ['email', 'e-mail', 'mail', 'email_address', 'emailaddress'],
+        'first_name': ['first', 'firstname', 'fname', 'given_name', 'givenname'],
+        'last_name': ['last', 'lastname', 'lname', 'family_name', 'surname', 'familyname'],
+        'full_name': ['name', 'full_name', 'fullname', 'applicant_name', 'applicantname'],
+        'phone': ['phone', 'telephone', 'mobile', 'cell', 'phonenumber'],
+        'address': ['address', 'street', 'location', 'streetaddress'],
+        'city': ['city', 'town', 'locality'],
+        'state': ['state', 'province', 'region', 'administrativearea'],
+        'zip': ['zip', 'postal', 'postcode', 'postalcode', 'zipcode'],
+        'country': ['country', 'nation'],
+        'linkedin': ['linkedin', 'linkedin_url', 'linkedin_profile', 'linkedinurl'],
+        'website': ['website', 'portfolio', 'personal_website', 'personalwebsite', 'url'],
+        'cover_letter': ['cover_letter', 'coverletter', 'message', 'additional_info', 'additionalinfo', 'motivation'],
+        'current_title': ['title', 'position', 'current_title', 'job_title', 'jobtitle'],
+        'years_experience': ['experience', 'years_experience', 'yearsexperience', 'years_exp', 'work_experience'],
+        'desired_salary': ['salary', 'desired_salary', 'expected_salary', 'salary_expectation', 'compensation'],
+        'start_date': ['start_date', 'available_date', 'availability', 'when_can_start'],
+        'education_degree': ['degree', 'education', 'highest_degree', 'education_level'],
+        'education_school': ['school', 'university', 'college', 'institution', 'alma_mater'],
+        'graduation_year': ['graduation', 'grad_year', 'graduation_year', 'year_graduated'],
+        'skills': ['skills', 'technical_skills', 'expertise', 'competencies', 'technologies']
     }
     
     # Find and fill text inputs
@@ -401,6 +489,48 @@ def detect_and_fill_form(driver, profile: Dict[str, Any]) -> bool:
                 if upload_file(field, profile['cover_letter_path'], 'cover_letter'):
                     filled_fields += 1
     
+    # Handle dropdowns/select elements
+    for select_elem in driver.find_elements(By.TAG_NAME, "select"):
+        try:
+            select_name = (select_elem.get_attribute("name") or "").lower()
+            select_id = (select_elem.get_attribute("id") or "").lower()
+            
+            # Handle common dropdown fields
+            if any(keyword in select_name or keyword in select_id for keyword in ['experience', 'years']):
+                if 'years_experience' in profile:
+                    select = Select(select_elem)
+                    years = profile['years_experience']
+                    # Try to find matching option
+                    for option in select.options:
+                        if years in option.text or str(years) in option.get_attribute("value"):
+                            select.select_by_visible_text(option.text)
+                            filled_fields += 1
+                            break
+            
+            elif any(keyword in select_name or keyword in select_id for keyword in ['education', 'degree']):
+                if 'education_degree' in profile:
+                    select = Select(select_elem)
+                    degree = profile['education_degree'].lower()
+                    for option in select.options:
+                        if degree in option.text.lower():
+                            select.select_by_visible_text(option.text)
+                            filled_fields += 1
+                            break
+            
+            elif any(keyword in select_name or keyword in select_id for keyword in ['country']):
+                if 'country' in profile:
+                    select = Select(select_elem)
+                    country = profile['country']
+                    for option in select.options:
+                        if country.lower() in option.text.lower():
+                            select.select_by_visible_text(option.text)
+                            filled_fields += 1
+                            break
+                            
+        except Exception as e:
+            bot_state.logger.debug(f"Failed to handle dropdown: {e}")
+            continue
+    
     # Handle checkboxes and agreements
     for checkbox in driver.find_elements(By.CSS_SELECTOR, "input[type='checkbox']"):
         try:
@@ -408,15 +538,66 @@ def detect_and_fill_form(driver, profile: Dict[str, Any]) -> bool:
             # Try to find associated label
             checkbox_id = checkbox.get_attribute("id")
             if checkbox_id:
-                label = driver.find_element(By.CSS_SELECTOR, f"label[for='{checkbox_id}']")
-                label_text = label.text.lower()
+                try:
+                    label = driver.find_element(By.CSS_SELECTOR, f"label[for='{checkbox_id}']")
+                    label_text = label.text.lower()
+                except:
+                    # Try to find label by looking at parent elements
+                    parent = checkbox.find_element(By.XPATH, "..")
+                    label_text = parent.text.lower()
             
             # Auto-check agreement checkboxes
-            if any(keyword in label_text for keyword in ['agree', 'terms', 'privacy', 'consent']):
+            if any(keyword in label_text for keyword in ['agree', 'terms', 'privacy', 'consent', 'authorize']):
                 if not checkbox.is_selected():
                     safe_click(driver, checkbox, 'agreement_checkbox')
                     filled_fields += 1
-        except:
+            
+            # Handle work authorization questions
+            elif any(keyword in label_text for keyword in ['authorized', 'eligible', 'work in']):
+                if profile.get('authorized_to_work', True) and not checkbox.is_selected():
+                    safe_click(driver, checkbox, 'work_authorization')
+                    filled_fields += 1
+            
+            # Handle sponsorship questions (usually "No" for sponsorship needed)
+            elif any(keyword in label_text for keyword in ['sponsor', 'visa']):
+                if not profile.get('require_sponsorship', False) and not checkbox.is_selected():
+                    safe_click(driver, checkbox, 'sponsorship_checkbox')
+                    filled_fields += 1
+                    
+        except Exception as e:
+            bot_state.logger.debug(f"Failed to handle checkbox: {e}")
+            continue
+    
+    # Handle radio buttons
+    for radio in driver.find_elements(By.CSS_SELECTOR, "input[type='radio']"):
+        try:
+            radio_name = radio.get_attribute("name")
+            radio_value = radio.get_attribute("value")
+            
+            # Try to find label
+            label_text = ""
+            try:
+                radio_id = radio.get_attribute("id")
+                if radio_id:
+                    label = driver.find_element(By.CSS_SELECTOR, f"label[for='{radio_id}']")
+                    label_text = label.text.lower()
+            except:
+                pass
+            
+            # Handle work authorization radio buttons
+            if any(keyword in (radio_name or "").lower() for keyword in ['authorized', 'eligible', 'work']):
+                if profile.get('authorized_to_work', True) and 'yes' in (radio_value or "").lower():
+                    safe_click(driver, radio, 'work_auth_radio')
+                    filled_fields += 1
+            
+            # Handle sponsorship radio buttons
+            elif any(keyword in (radio_name or "").lower() for keyword in ['sponsor', 'visa']):
+                if not profile.get('require_sponsorship', False) and 'no' in (radio_value or "").lower():
+                    safe_click(driver, radio, 'sponsorship_radio')
+                    filled_fields += 1
+                    
+        except Exception as e:
+            bot_state.logger.debug(f"Failed to handle radio button: {e}")
             continue
     
     bot_state.logger.info(f"Filled {filled_fields} form fields")
@@ -595,14 +776,21 @@ def main():
     # Load data
     bot_state.logger.info("Loading job data and profile...")
     job_data = load_json(args.jobs_file)
-    profile = load_json(args.profile_file)
+    raw_profile = load_json(args.profile_file)
+    profile = normalize_profile(raw_profile)
     
     # Validate profile
     required_fields = ['email', 'first_name', 'last_name']
-    missing_fields = [field for field in required_fields if field not in profile]
+    missing_fields = [field for field in required_fields if field not in profile or not profile[field]]
     if missing_fields:
         bot_state.logger.error(f"Missing required profile fields: {missing_fields}")
+        bot_state.logger.info("Available profile fields: " + ", ".join(profile.keys()))
         sys.exit(1)
+    
+    # Debug: Show normalized profile fields
+    bot_state.logger.info(f"Profile loaded successfully with {len(profile)} fields")
+    if args.verbose:
+        bot_state.logger.debug("Profile fields: " + ", ".join(f"{k}={v}" for k, v in profile.items() if v))
     
     # Setup driver
     bot_state.logger.info("Setting up browser...")
