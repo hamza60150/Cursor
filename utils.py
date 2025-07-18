@@ -28,15 +28,57 @@ def save_cookies(driver, filepath: str):
     except Exception as e:
         logging.error(f"Failed to save cookies: {e}")
 
+def convert_browser_cookie_to_selenium(cookie: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert browser extension cookie format to Selenium format"""
+    selenium_cookie = {
+        'name': cookie.get('name', ''),
+        'value': cookie.get('value', ''),
+        'domain': cookie.get('domain', ''),
+        'path': cookie.get('path', '/'),
+        'secure': cookie.get('secure', False),
+        'httpOnly': cookie.get('httpOnly', False)
+    }
+    
+    # Handle expiration date
+    if 'expirationDate' in cookie and cookie['expirationDate']:
+        # Convert from Unix timestamp to integer
+        expiry = cookie['expirationDate']
+        if isinstance(expiry, float):
+            selenium_cookie['expiry'] = int(expiry)
+        elif isinstance(expiry, int):
+            selenium_cookie['expiry'] = expiry
+    
+    # Handle sameSite attribute
+    if 'sameSite' in cookie and cookie['sameSite']:
+        same_site = cookie['sameSite'].lower()
+        if same_site in ['strict', 'lax', 'none']:
+            selenium_cookie['sameSite'] = same_site.capitalize()
+    
+    return selenium_cookie
+
 def load_cookies(driver, filepath: str):
-    """Load cookies from file into browser"""
+    """Load cookies from file into browser with format conversion"""
     try:
         if os.path.exists(filepath):
             with open(filepath, 'r') as f:
                 cookies = json.load(f)
+            
+            loaded_count = 0
             for cookie in cookies:
-                driver.add_cookie(cookie)
-            logging.info(f"Cookies loaded from {filepath}")
+                try:
+                    # Convert browser cookie format to Selenium format
+                    selenium_cookie = convert_browser_cookie_to_selenium(cookie)
+                    
+                    # Skip empty cookies
+                    if not selenium_cookie['name'] or not selenium_cookie['value']:
+                        continue
+                    
+                    driver.add_cookie(selenium_cookie)
+                    loaded_count += 1
+                except Exception as e:
+                    logging.warning(f"Failed to add cookie {cookie.get('name', 'unknown')}: {e}")
+            
+            logging.info(f"Successfully loaded {loaded_count} cookies from {filepath}")
             return True
     except Exception as e:
         logging.error(f"Failed to load cookies: {e}")

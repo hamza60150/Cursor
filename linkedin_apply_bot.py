@@ -312,16 +312,13 @@ def setup_driver(headless: bool = False, cookies_path: str = None) -> uc.Chrome:
             bot_state.logger.info("Loading saved cookies...")
             driver.get("https://www.linkedin.com")
             
-            with open(cookies_path, 'r', encoding='utf-8') as f:
-                cookies = json.load(f)
-                for cookie in cookies:
-                    try:
-                        driver.add_cookie(cookie)
-                    except Exception as e:
-                        bot_state.logger.warning(f"Failed to add cookie: {e}")
-            
-            driver.refresh()
-            time.sleep(3)
+            # Use the improved cookie loading function
+            from utils import load_cookies
+            if load_cookies(driver, cookies_path):
+                driver.refresh()
+                time.sleep(3)
+            else:
+                bot_state.logger.warning("Cookie loading failed, continuing without cookies")
         
         return driver
         
