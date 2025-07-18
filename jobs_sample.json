@@ -1,0 +1,60 @@
+[
+  {
+    "title": "Software Engineer",
+    "companyName": "Tech Corp",
+    "location": "San Francisco, CA",
+    "salary": "$120,000 - $150,000",
+    "applyLinksDetails": [
+      {
+        "platform": "LinkedIn",
+        "url": "https://www.linkedin.com/jobs/view/1234567890"
+      },
+      {
+        "platform": "Indeed",
+        "url": "https://www.indeed.com/viewjob?jk=abcdef123456"
+      }
+    ],
+    "link": [
+      "https://www.linkedin.com/jobs/view/1234567890",
+      "https://www.indeed.com/viewjob?jk=abcdef123456"
+    ],
+    "description": "We are looking for a talented Software Engineer to join our team..."
+  },
+  {
+    "title": "Frontend Developer",
+    "companyName": "StartupXYZ",
+    "location": "Remote",
+    "salary": "$90,000 - $120,000",
+    "applyLinksDetails": [
+      {
+        "platform": "Glassdoor",
+        "url": "https://www.glassdoor.com/job-listing/frontend-developer-startupxyz-JV_IC1147401_KO0,18_KE19,29.htm"
+      }
+    ],
+    "link": [
+      "https://www.glassdoor.com/job-listing/frontend-developer-startupxyz-JV_IC1147401_KO0,18_KE19,29.htm"
+    ],
+    "description": "Join our dynamic team as a Frontend Developer..."
+  },
+  {
+    "title": "Data Scientist",
+    "companyName": "DataCorp",
+    "location": "New York, NY",
+    "salary": "$130,000 - $160,000",
+    "applyLinksDetails": [
+      {
+        "platform": "LinkedIn",
+        "url": "https://www.linkedin.com/jobs/view/9876543210"
+      },
+      {
+        "platform": "Built In",
+        "url": "https://builtin.com/job/data-scientist/123456"
+      }
+    ],
+    "link": [
+      "https://www.linkedin.com/jobs/view/9876543210",
+      "https://builtin.com/job/data-scientist/123456"
+    ],
+    "description": "We are seeking a Data Scientist to analyze complex datasets..."
+  }
+]
