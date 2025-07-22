@@ -17,3 +17,17 @@ flask>=2.3.0
 # Async support
 aiohttp>=3.8.0
 asyncio-mqtt>=0.11.0
+
+# Adaptive Web Automation
+beautifulsoup4>=4.12.0
+flask-cors>=4.0.0
+
+# Resume Parsing
+PyPDF2>=3.0.1
+pdfplumber>=0.9.0
+python-docx>=0.8.11
+docx2txt>=0.8
+
+# Additional utilities
+python-magic>=0.4.27
+chardet>=5.2.0
