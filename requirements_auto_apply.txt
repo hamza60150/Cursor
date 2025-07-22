@@ -1,0 +1,10 @@
+# Core Auto Apply Agent Dependencies
+undetected-chromedriver>=3.5.0
+selenium>=4.15.0
+beautifulsoup4>=4.12.0
+openai>=1.3.0
+python-dotenv>=1.0.0
+
+# Optional for enhanced functionality
+lxml>=4.9.0
+requests>=2.31.0

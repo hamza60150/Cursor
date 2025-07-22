@@ -1,0 +1,31 @@
+{
+    "name": "John Doe",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+1-555-123-4567",
+    "address": "123 Main Street",
+    "city": "San Francisco",
+    "state": "CA",
+    "zip_code": "94105",
+    "linkedin": "https://linkedin.com/in/johndoe",
+    "website": "https://johndoe.com",
+    "skills": [
+        "Python",
+        "JavaScript",
+        "React",
+        "Node.js",
+        "SQL",
+        "AWS",
+        "Docker",
+        "Git",
+        "Machine Learning",
+        "REST APIs"
+    ],
+    "experience_years": "5",
+    "experience": "5+ years of software development experience with expertise in full-stack web development, cloud technologies, and agile methodologies. Led development teams and delivered scalable applications serving millions of users.",
+    "education": "Bachelor of Science in Computer Science, University of California Berkeley",
+    "cover_letter": "I am excited to apply for this position. With my strong background in software development and passion for creating innovative solutions, I believe I would be a valuable addition to your team. My experience in modern technologies and collaborative development makes me well-suited for this role.",
+    "expected_salary": "120000",
+    "resume_file_path": "/path/to/resume.pdf"
+}
