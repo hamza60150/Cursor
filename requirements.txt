@@ -4,3 +4,16 @@ requests>=2.31.0
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
 python-dotenv>=1.0.0
+# LLM Integration
+openai>=1.0.0
+anthropic>=0.7.0
+
+# GitHub Integration
+PyGithub>=1.59.0
+
+# Webhook Server
+flask>=2.3.0
+
+# Async support
+aiohttp>=3.8.0
+asyncio-mqtt>=0.11.0
