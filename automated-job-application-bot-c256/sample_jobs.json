@@ -1,0 +1,17 @@
+[
+    {
+        "job_url": "https://www.linkedin.com/jobs/view/3234567890",
+        "job_title": "Senior Python Developer",
+        "company": "TechCorp Inc"
+    },
+    {
+        "job_url": "https://jobs.indeed.com/viewjob?jk=abc123def456",
+        "job_title": "Full Stack Engineer", 
+        "company": "StartupXYZ"
+    },
+    {
+        "job_url": "https://company-careers.com/jobs/software-engineer-123",
+        "job_title": "Software Engineer",
+        "company": "BigTech Corp"
+    }
+]
