@@ -150,7 +150,7 @@ class AutoApplier:
             elif ai_provider == "gemini":
                 self.aiClient = gemini_create_client()
 
-    def load_jobs_from_csv(self, filename: str = "applicable.csv") -> List[JobApplication]:
+    def load_jobs_from_csv(self, filename: str = "applicablejobs.csv") -> List[JobApplication]:
         """Load jobs from CSV file"""
         jobs = []
         try:
@@ -700,7 +700,7 @@ def main_apply():
         jobs = applier.load_jobs_from_csv()
         
         if not jobs:
-            print_lg("No jobs found in applicable.csv. Please run job_fetcher.py first.")
+            print_lg("No jobs found in applicablejobs.csv. Please run job_fetcher.py first.")
             return
             
         # Filter jobs with Easy Apply

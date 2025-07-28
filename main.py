@@ -18,8 +18,8 @@ def main():
                        help='Maximum number of jobs to fetch per search term (default: 50)')
     parser.add_argument('--max-applications', type=int, default=10,
                        help='Maximum number of applications to submit (default: 10)')
-    parser.add_argument('--csv-file', default='applicable.csv',
-                       help='CSV file to use for job data (default: applicable.csv)')
+    parser.add_argument('--csv-file', default='applicablejobs.csv',
+                       help='CSV file to use for job data (default: applicablejobs.csv)')
     
     args = parser.parse_args()
     
@@ -43,7 +43,7 @@ def main():
         print("\n📝 Starting Auto-Applying...")
         print("-" * 40)
         
-        # Check if applicable.csv exists
+        # Check if applicablejobs.csv exists
         if not os.path.exists(args.csv_file):
             print(f"❌ File {args.csv_file} not found!")
             print("Please run job fetching first or check the file path.")
