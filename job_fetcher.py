@@ -7,9 +7,11 @@ Fetches relevant jobs based on user description and saves them to applicablejobs
 import os
 import csv
 import re
+import pyautogui
 import time
+from random import choice, shuffle, randint
 from datetime import datetime
-from typing import List, Dict, Set, Optional, Tuple
+from typing import List, Dict, Set, Optional, Tuple, Literal
 from dataclasses import dataclass
 
 from selenium.webdriver.common.by import By
@@ -34,6 +36,46 @@ from modules.validator import validate_config
 from modules.ai.openaiConnections import ai_create_openai_client, ai_extract_skills, ai_answer_question, ai_close_openai_client
 from modules.ai.deepseekConnections import deepseek_create_client, deepseek_extract_skills, deepseek_answer_question
 from modules.ai.geminiConnections import gemini_create_client, gemini_extract_skills, gemini_answer_question
+
+pyautogui.FAILSAFE = False
+
+# Global Variables and logics
+if run_in_background == True:
+    pause_at_failed_question = False
+    pause_before_submit = False
+    run_non_stop = False
+
+first_name = first_name.strip()
+middle_name = middle_name.strip()
+last_name = last_name.strip()
+full_name = first_name + " " + middle_name + " " + last_name if middle_name else first_name + " " + last_name
+
+useNewResume = True
+randomly_answered_questions = set()
+
+tabs_count = 1
+easy_applied_count = 0
+external_jobs_count = 0
+failed_count = 0
+skip_count = 0
+dailyEasyApplyLimitReached = False
+
+re_experience = re.compile(r'[(]?\s*(\d+)\s*[)]?\s*[-to]*\s*\d*[+]*\s*year[s]?', re.IGNORECASE)
+
+desired_salary_lakhs = str(round(desired_salary / 100000, 2))
+desired_salary_monthly = str(round(desired_salary/12, 2))
+desired_salary = str(desired_salary)
+
+current_ctc_lakhs = str(round(current_ctc / 100000, 2))
+current_ctc_monthly = str(round(current_ctc/12, 2))
+current_ctc = str(current_ctc)
+
+notice_period_months = str(notice_period//30)
+notice_period_weeks = str(notice_period//7)
+notice_period = str(notice_period)
+
+aiClient = None
+about_company_for_ai = None
 
 @dataclass
 class JobInfo:
@@ -367,7 +409,7 @@ class JobFetcher:
                 job_details_button.click()
         except Exception as e:
             print_lg(f'Failed to click "{title} | {company}" job on details button. Job ID: {job_id}!') 
-            discard_job()
+            discard_job(self.driver, self.actions)
             job_details_button.click()
         buffer(click_gap)
         return (job_id, title, company, work_location, work_style, skip)
@@ -397,7 +439,6 @@ class JobFetcher:
 
     def extract_years_of_experience(self, text: str) -> int:
         """Extract years of experience required from job description"""
-        re_experience = re.compile(r'[(]?\s*(\d+)\s*[)]?\s*[-to]*\d*[+]*\s*year[s]?', re.IGNORECASE)
         matches = re.findall(re_experience, text)
         if len(matches) == 0: 
             print_lg(f'\n{text}\n\nCouldn\'t find experience requirement in About the Job!')
@@ -595,7 +636,6 @@ class JobFetcher:
         all_jobs = []
         
         if randomize_search_order:
-            from random import shuffle
             shuffle(search_terms)
             
         for search_term in search_terms:
@@ -604,6 +644,11 @@ class JobFetcher:
             all_jobs.extend(jobs)
             
         return all_jobs
+
+def discard_job(driver, actions) -> None:
+    """Function to discard the job application"""
+    actions.send_keys(Keys.ESCAPE).perform()
+    wait_span_click(driver, 'Discard', 2)
 
 def main_fetch():
     """Main function for job fetching"""
