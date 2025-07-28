@@ -29,7 +29,8 @@ from config.search import *
 from config.settings import *
 from config.secrets import username, password, use_AI, ai_provider
 
-from modules.open_chrome import *
+# Import modules properly
+from modules.open_chrome import setup_driver, get_driver, get_wait, get_actions
 from modules.helpers import *
 from modules.clickers_and_finders import *
 from modules.validator import validate_config
@@ -106,23 +107,48 @@ class JobFetcher:
         
     def initialize_driver(self):
         """Initialize the web driver and related objects"""
-        self.driver = setup_driver(headless=False)
-        self.wait = WebDriverWait(self.driver, 10)
-        self.actions = get_actions()
+        try:
+            print_lg("Initializing Chrome driver...")
+            self.driver = setup_driver(headless=False)
+            if self.driver is None:
+                raise Exception("Failed to initialize Chrome driver")
+            
+            print_lg("Setting up WebDriverWait...")
+            self.wait = WebDriverWait(self.driver, 10)
+            
+            print_lg("Setting up ActionChains...")
+            self.actions = get_actions()
+            if self.actions is None:
+                # Create ActionChains manually if get_actions() fails
+                from selenium.webdriver.common.action_chains import ActionChains
+                self.actions = ActionChains(self.driver)
+            
+            print_lg("Driver initialization completed successfully")
+            
+        except Exception as e:
+            print_lg(f"Failed to initialize driver: {e}")
+            raise e
         
     def initialize_ai_client(self):
         """Initialize AI client if enabled"""
         if use_AI:
-            if ai_provider == "openai":
-                self.aiClient = ai_create_openai_client()
-            elif ai_provider == "deepseek":
-                self.aiClient = deepseek_create_client()
-            elif ai_provider == "gemini":
-                self.aiClient = gemini_create_client()
-            print_lg(f"AI client initialized: {ai_provider}")
+            try:
+                if ai_provider == "openai":
+                    self.aiClient = ai_create_openai_client()
+                elif ai_provider == "deepseek":
+                    self.aiClient = deepseek_create_client()
+                elif ai_provider == "gemini":
+                    self.aiClient = gemini_create_client()
+                print_lg(f"AI client initialized: {ai_provider}")
+            except Exception as e:
+                print_lg(f"Failed to initialize AI client: {e}")
         
     def is_logged_in_LN(self) -> bool:
         """Check if user is logged-in in LinkedIn"""
+        if self.driver is None:
+            print_lg("Driver is None, cannot check login status")
+            return False
+            
         if self.driver.current_url == "https://www.linkedin.com/feed/": 
             return True
         if try_linkText(self.driver, "Sign in"): 
@@ -187,6 +213,10 @@ class JobFetcher:
     def check_sign_in(self) -> bool:
         """Check if sign in was successful"""
         print_lg("Checking sign in status...")
+        
+        if self.driver is None:
+            print_lg("❌ Driver is None, cannot check sign in status")
+            return False
         
         # Check if we're on the feed page
         if self.driver.current_url == "https://www.linkedin.com/feed/":
